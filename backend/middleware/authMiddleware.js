@@ -8,7 +8,6 @@ if (!JWT_SECRET) {
 }
 
 const authMiddleware = (req, res, next) => {
-  // Expecting header: Authorization: Bearer <token>
   const authHeader = req.header('Authorization');
   if (!authHeader) return res.status(401).json({ message: 'No token, authorization denied' });
 
@@ -17,7 +16,7 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Attach user info to request
+    req.user = decoded;
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });

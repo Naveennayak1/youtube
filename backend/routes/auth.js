@@ -1,72 +1,39 @@
 const express = require('express');
-const router =express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const User = require('../models/User');
+const router = express.Router();
 
-const User= require('../models/User');
-const JWT_SECRET =process.env.JWT_SECRET;
+router.post('/signup', async (req, res) => {
+  const { username, email, password, avatar } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, email, password: hashedPassword, avatar });
+    await user.save();
 
-if(!JWT_SECRET){
-    throw new Error('JWT_SECRET is not defined in environment variables');
-}
-
-router.post('/signup' , async (req,res)=>{
-const {username , email , password , avatar}= req.body;
-
-try{
-    const existinguser = await User.findOne({email});
-    if(existinguser) return res.status(400).json({message :"user already exist"});
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedpassword = await bcrypt.hash(password, salt);
-
-    const newUser= new User({
-
-        username,
-        email,
-        password:hashedpassword,
-        avatar,
-    });
-
-    await newUser.save();
-
-    res.status(201).json({message : "user registerd successfully"});
-}
-catch(err){
-    res.status(500).json({message : "server error" , error:err.message});
-}
-
-
-
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 });
 
-router.post('/login' , async(req,res)=>{
-    const {email ,password} = req.body;
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    try{
-        const user = await User.findOne({email});
-        if(!user) return res.status(400).json({message : "invalid credintials"});
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-
-        const isMatch= await bcrypt.compare(password, user.password);
-if(!isMatch) return res.status(400).json({message : "invalid creds"})
-
-    const payload ={
-        UserId : user._id,
-        username: user.username,
-        email : user.email,
-    };
-
-    const token = jwt.sign(payload , JWT_SECRET , {expiresIn : '1d' });
-
+    const token = jwt.sign({ userId: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ token, username: user.username, userId: user._id });
-    }
-
-    catch (err){
-        res.status(500).json({ message: 'Server error', error: err.message });
-    }
-})
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
 module.exports = router;
