@@ -1,23 +1,35 @@
-import React, { useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home.jsx";
-import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx";
-import VideoPlayer from "./pages/VideoPlayer.jsx";
-import Channel from "./pages/Channel.jsx";
+// src/App.jsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { UserProvider } from "./context/UserContext";
 
-function App() {
-  const [user, setUser] = useState(null);
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import VideoPlayer from "./pages/VideoPlayer";
+import ChannelPage from "./pages/ChannelPage";
+import CreateChannel from "./pages/CreateChannel";
+import UploadVideo from "./pages/UploadVideo";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+const App = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home user={user} setUser={setUser} />} />
-        <Route path="/login" element={<Login setUser={setUser} />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/video/:id" element={<VideoPlayer user={user} />} />
-        <Route path="/channel/:id" element={<Channel user={user} />} />
-      </Routes>
-    </BrowserRouter>
+    <UserProvider>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/video/:id" element={<VideoPlayer />} />
+            <Route path="/channel/:id" element={<ChannelPage />} />
+            <Route path="/create-channel" element={<CreateChannel />} />
+            <Route path="/upload-video" element={<UploadVideo />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </UserProvider>
   );
-}
+};
+
 export default App;

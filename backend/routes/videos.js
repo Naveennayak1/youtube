@@ -1,7 +1,9 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Video = require('../models/Video');
 const authMiddleware = require('../middleware/authMiddleware');
+const Channel = require('../models/Channel');
 
 // Get videos with optional search and category filter
 router.get('/', async (req, res) => {
@@ -18,13 +20,21 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get video by ID
+// Get video by ID with ObjectId validation
 router.get('/:id', async (req, res) => {
   try {
-    const video = await Video.findById(req.params.id)
+    const id = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid video ID' });
+    }
+
+    const video = await Video.findById(id)
       .populate('channelId', 'channelName')
       .populate('uploader', 'username');
+
     if (!video) return res.status(404).json({ message: 'Video not found' });
+
     res.json(video);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -32,13 +42,20 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create video (protected)
-router.post('/', authMiddleware, async (req, res) => {
+// Create video (protected)
+router.post('/', authMiddleware, async (req, res, next) => {
   try {
     const video = new Video(req.body);
     await video.save();
+
+    // Update channel videos array
+    await Channel.findByIdAndUpdate(video.channelId, {
+      $push: { videos: video._id },
+    });
+
     res.status(201).json(video);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err); // Pass error to centralized error handler
   }
 });
 

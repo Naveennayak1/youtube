@@ -1,50 +1,94 @@
-import React from "react";
-import { AppBar, Toolbar, IconButton, Typography, InputBase, Box, Button } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
+// src/components/Header.jsx
+import React, { useContext, useState } from "react";
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Avatar,
+} from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
 
-const Header = ({ user, setUser, onHamburgerClick, searchTerm, setSearchTerm }) => {
+
+const Header = () => {
+ const { user, setUser } = useContext(UserContext);
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+
   const handleLogout = () => {
     localStorage.clear();
     setUser(null);
+    handleMenuClose();
     navigate("/");
   };
+
   return (
-    <AppBar position="sticky" sx={{ bgcolor: "#202020" }}>
+    <AppBar position="sticky" sx={{ bgcolor: "#202020", zIndex: 1300 }}>
       <Toolbar>
-        <IconButton edge="start" color="inherit" aria-label="menu" onClick={onHamburgerClick}>
-          <MenuIcon />
-        </IconButton>
-        <Typography variant="h6" component={Link} to="/" sx={{ color: "white", textDecoration: "none", flexGrow: 1 }}>
-          YouTube
+        <Typography
+          variant="h6"
+          component={Link}
+          to="/"
+          sx={{ color: "white", textDecoration: "none", flexGrow: 1 }}
+        >
+          YouTube Clone
         </Typography>
-        <InputBase
-          placeholder="Search…"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          sx={{
-            bgcolor: "#121212",
-            color: "white",
-            px: 2,
-            borderRadius: 1,
-            width: 300,
-            mr: 2,
-          }}
-        />
+
         {!user ? (
           <>
-            <Button color="inherit" component={Link} to="/login">Sign In</Button>
-            <Button color="inherit" component={Link} to="/register">Register</Button>
+            <Button color="inherit" component={Link} to="/login">
+              Sign In
+            </Button>
+            <Button color="inherit" component={Link} to="/register">
+              Register
+            </Button>
           </>
         ) : (
           <>
-            <Typography sx={{ mr: 2 }}>Hello, {user.username}</Typography>
-            <Button color="inherit" onClick={handleLogout}>Logout</Button>
+            <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
+              <Avatar alt={user.username} src={user.avatar || ""} />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+            >
+              <MenuItem disabled>Hello, {user.username}</MenuItem>
+
+              {user.hasChannel && user.channelId ? (
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    navigate(`/channel/${user.channelId}`);
+                  }}
+                >
+                  Your Channel
+                </MenuItem>
+              ) : (
+                <MenuItem
+                  onClick={() => {
+                    handleMenuClose();
+                    navigate("/create-channel");
+                  }}
+                >
+                  Create Channel
+                </MenuItem>
+              )}
+
+              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+            </Menu>
           </>
         )}
       </Toolbar>
     </AppBar>
   );
 };
+
 export default Header;

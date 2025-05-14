@@ -30,7 +30,7 @@ const Home = ({ user, setUser }) => {
     <Box sx={{ display: "flex" }}>
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Box sx={{ flexGrow: 1 }}>
-        <Header user={user} setUser={setUser} onHamburgerClick={() => setSidebarOpen(!sidebarOpen)} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+        {/* <Header user={user} setUser={setUser} onHamburgerClick={() => setSidebarOpen(!sidebarOpen)} searchTerm={searchTerm} setSearchTerm={setSearchTerm} /> */}
         <FilterButtons categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
         <VideoGrid videos={videos} />
       </Box>

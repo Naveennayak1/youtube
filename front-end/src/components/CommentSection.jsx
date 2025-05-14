@@ -1,14 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { Box, Typography, TextField, Button, IconButton } from "@mui/material";
+// src/components/CommentsSection.jsx
+import React, { useEffect, useState, useContext } from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+} from "@mui/material";
 import axios from "axios";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { UserContext } from "../context/UserContext";
 
-const CommentSection = ({ videoId, user }) => {
+const CommentsSection = ({ videoId }) => {
+  const { user } = useContext(UserContext);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [editId, setEditId] = useState(null);
-  const [editText, setEditText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchComments = async () => {
     try {
@@ -16,6 +26,9 @@ const CommentSection = ({ videoId, user }) => {
       setComments(res.data);
     } catch (err) {
       console.error(err);
+      setError("Failed to load comments");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -26,98 +39,68 @@ const CommentSection = ({ videoId, user }) => {
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
     try {
-      const res = await axios.post(
+      const token = localStorage.getItem("token");
+      await axios.post(
         `http://localhost:5000/api/comments/${videoId}`,
         { text: newComment },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      setComments([res.data, ...comments]);
       setNewComment("");
+      fetchComments();
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const handleEditComment = (id, text) => {
-    setEditId(id);
-    setEditText(text);
-  };
-
-  const saveEdit = async () => {
-    try {
-      await axios.put(
-        `http://localhost:5000/api/comments/${editId}`,
-        { text: editText },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-      setComments(comments.map(c => (c._id === editId ? { ...c, text: editText } : c)));
-      setEditId(null);
-      setEditText("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/api/comments/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      setComments(comments.filter(c => c._id !== id));
-    } catch (err) {
-      console.error(err);
+      setError("Failed to add comment");
     }
   };
 
   return (
-    <Box mt={4}>
-      <Typography variant="h6" mb={2}>Comments</Typography>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h6" gutterBottom>
+        Comments ({comments.length})
+      </Typography>
+      {error && (
+        <Typography color="error" variant="body2" gutterBottom>
+          {error}
+        </Typography>
+      )}
       {user ? (
-        <Box mb={2}>
+        <Box sx={{ display: "flex", mb: 2 }}>
           <TextField
-            label="Add a comment"
-            multiline
             fullWidth
-            rows={3}
+            size="small"
+            placeholder="Add a comment..."
             value={newComment}
-            onChange={e => setNewComment(e.target.value)}
+            onChange={(e) => setNewComment(e.target.value)}
           />
-          <Button variant="contained" color="error" sx={{ mt: 1 }} onClick={handleAddComment}>Post</Button>
+          <Button variant="contained" onClick={handleAddComment} sx={{ ml: 1 }}>
+            Post
+          </Button>
         </Box>
       ) : (
-        <Typography variant="body2" color="text.secondary">Please sign in to comment.</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Please log in to comment.
+        </Typography>
       )}
-      {comments.length === 0 && <Typography>No comments yet.</Typography>}
-      {comments.map(comment => (
-        <Box key={comment._id} sx={{ mb: 2, borderBottom: "1px solid #ddd", pb: 1 }}>
-          <Typography variant="subtitle2">{comment.userId?.username || "User"}</Typography>
-          {editId === comment._id ? (
-            <>
-              <TextField
-                multiline
-                fullWidth
-                rows={2}
-                value={editText}
-                onChange={e => setEditText(e.target.value)}
-              />
-              <Button size="small" onClick={saveEdit}>Save</Button>
-              <Button size="small" onClick={() => setEditId(null)}>Cancel</Button>
-            </>
-          ) : (
-            <>
-              <Typography variant="body1">{comment.text}</Typography>
-              {user && user.userId === comment.userId?._id && (
-                <>
-                  <IconButton size="small" onClick={() => handleEditComment(comment._id, comment.text)}><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" onClick={() => handleDelete(comment._id)}><DeleteIcon fontSize="small" /></IconButton>
-                </>
-              )}
-            </>
-          )}
-        </Box>
-      ))}
+
+      {loading ? (
+        <Typography>Loading comments...</Typography>
+      ) : (
+        <List>
+          {comments.map((comment) => (
+            <React.Fragment key={comment._id}>
+              <ListItem alignItems="flex-start">
+                <ListItemText
+                   primary={comment.userId?.username || "Anonymous"}
+                  secondary={comment.text}
+                />
+              </ListItem>
+              <Divider component="li" />
+            </React.Fragment>
+          ))}
+        </List>
+      )}
     </Box>
   );
 };
 
-export default CommentSection;
+export default CommentsSection;

@@ -1,72 +1,101 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+// src/pages/VideoPlayer.jsx
+import React, { useEffect, useState, useContext } from "react";
+import { useParams, Link } from "react-router-dom";
 import axios from "axios";
-import { Box, Typography, Button, TextField } from "@mui/material";
-import CommentSection from "../components/CommentSection.jsx";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Avatar,
+  Button,
+  Paper,
+} from "@mui/material";
+import { UserContext } from "../context/UserContext";
+import CommentsSection from "../components/CommentSection";
 
-const VideoPlayer = ({ user }) => {
+const VideoPlayer = () => {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const fetchVideo = async () => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/videos/${id}`);
-      setVideo(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
-  };
-
-  const handleLike = async () => {
-    try {
-      await axios.post(`http://localhost:5000/api/videos/${id}/like`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      setVideo(prev => ({ ...prev, likes: (prev.likes || 0) + 1 }));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDislike = async () => {
-    try {
-      await axios.post(`http://localhost:5000/api/videos/${id}/dislike`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      setVideo(prev => ({ ...prev, dislikes: (prev.dislikes || 0) + 1 }));
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const { user } = useContext(UserContext);
 
   useEffect(() => {
+    const fetchVideo = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/videos/${id}`);
+        setVideo(res.data);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load video");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchVideo();
   }, [id]);
 
-  if (loading) return <Typography>Loading...</Typography>;
+  if (loading) return <CircularProgress />;
+
   if (!video) return <Typography>Video not found</Typography>;
 
   return (
-    <Box sx={{ p: 2 }}>
-      <video width="100%" height="480" controls>
-        <source src={video.videoUrl || "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-      <Typography variant="h5" mt={2}>{video.title}</Typography>
-      <Typography variant="subtitle1" color="text.secondary">{video.channelId?.channelName}</Typography>
-      <Typography mt={1}>{video.description}</Typography>
-      <Box mt={2}>
-        <Button variant="contained" color="error" onClick={handleLike} sx={{ mr: 2 }}>
-          👍 {video.likes || 0}
-        </Button>
-        <Button variant="contained" color="error" onClick={handleDislike}>
-          👎 {video.dislikes || 0}
-        </Button>
+    <Box sx={{  mx: "auto" }}>
+      <Box sx={{ position: "relative", pb: "56.25%", height: 0, mb: 2 }}>
+        <video
+          src={video.videoUrl}
+          controls
+          style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+        />
       </Box>
-      <CommentSection videoId={id} user={user} />
+
+      <Typography variant="h5" gutterBottom>
+        {video.title}
+      </Typography>
+      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+        {video.views} views • {new Date(video.uploadDate).toLocaleDateString()}
+      </Typography>
+
+      <Paper
+        elevation={2}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          p: 2,
+          mb: 3,
+          borderRadius: 2,
+          bgcolor: "#f9f9f9",
+        }}
+      >
+        <Avatar
+          src={video.channelId?.channelBanner || ""}
+          alt={video.channelId?.channelName || "Channel"}
+          sx={{ width: 56, height: 56, mr: 2 }}
+        />
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            <Link to={`/channel/${video.channelId?._id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              {video.channelId?.channelName}
+            </Link>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {video.channelId?.description}
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => alert("Subscribe feature coming soon!")}
+        >
+          Subscribe
+        </Button>
+      </Paper>
+
+      <Typography variant="body1" sx={{ whiteSpace: "pre-line" }}>
+        {video.description}
+      </Typography>
+      <CommentsSection videoId={video._id} />
     </Box>
+    
   );
 };
 

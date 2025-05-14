@@ -5,7 +5,8 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const authRoutes = require('./routes/auth');
-
+const channelsRouter = require('./routes/channels');
+const commentsRouter = require('./routes/comments');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -32,7 +33,8 @@ app.get('/test-user', async (req, res) => {
 
 const videoRoutes = require('./routes/videos');
 app.use('/api/videos', videoRoutes);
-
+app.use('/api/channels', channelsRouter);
+app.use('/api/comments', commentsRouter);
 // Connect to MongoDB and start server
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
@@ -46,4 +48,12 @@ mongoose.connect(process.env.MONGO_URI, {
 })
 .catch((err) => {
   console.error('MongoDB connection error:', err);
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    status: "error",
+    message: err.message || "Internal Server Error",
+  });
 });
